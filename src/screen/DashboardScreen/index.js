@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   FlatList,
   Image,
@@ -6,11 +6,21 @@ import {
   View,
   Button,
   ImageBackground,
+  TextInput,
+  TouchableOpacity,
+  AsyncStorage,
+  Alert,
 } from 'react-native';
+import {DateTimePicker} from '@react-native-community/datetimepicker';
 import axios from 'axios';
 
-const Dashboard = ({navigation}) => {
+const DashboardScreen = ({navigation}) => {
   const [pokemonData, setPokemonData] = useState([]);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [dueDate, setDueDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tasks, setTasks] = useState([]);
 
   useEffect(() => {
     const fetchPokemonData = async () => {
@@ -29,9 +39,29 @@ const Dashboard = ({navigation}) => {
   }, []);
 
   const handleLogout = () => {
-    // Assuming you have a navigation system in place and 'Home' is the route name for your home screen
     navigation.navigate('Home');
   };
+
+  const handleSubmit = () => {
+    if (!title || !description || !dueDate) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const newTask = {title, description, dueDate: dueDate.toLocaleDateString()};
+    setTasks([...tasks, newTask]);
+    setTitle('');
+    setDescription('');
+    setDueDate(new Date());
+  };
+
+  const renderItem = ({item}) => (
+    <TouchableOpacity style={{padding: 20}}>
+      <Text>Title: {item.title}</Text>
+      <Text>Description: {item.description}</Text>
+      <Text>Due Date: {item.dueDate}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <ImageBackground
@@ -41,70 +71,54 @@ const Dashboard = ({navigation}) => {
       style={{flex: 1, padding: 20}}>
       <View>
         <Button title="Logout" onPress={handleLogout} />
+        <Text>Title</Text>
+        <TextInput
+          style={{
+            height: 40,
+            borderColor: 'gray',
+            borderWidth: 1,
+            marginBottom: 10,
+          }}
+          onChangeText={setTitle}
+          value={title}
+        />
+        <Text>Description</Text>
+        <TextInput
+          style={{
+            height: 80,
+            borderColor: 'gray',
+            borderWidth: 1,
+            marginBottom: 10,
+          }}
+          onChangeText={setDescription}
+          value={description}
+          multiline
+        />
+        <Text>Due Date</Text>
+        <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+          <Text>{dueDate.toLocaleDateString()}</Text>
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              const currentDate = selectedDate || dueDate;
+              setShowDatePicker(false);
+              setDueDate(currentDate);
+            }}
+          />
+        )}
+        <Button title="Submit" onPress={handleSubmit} />
         <FlatList
-          data={pokemonData}
-          keyExtractor={item => item.name}
-          renderItem={({item}) => (
-            <View
-              style={{
-                borderBottomWidth: 1,
-                borderBottomColor: 'grey',
-                padding: 20,
-                marginBottom: 10,
-                borderRadius: 10,
-              }}>
-              <Text
-                style={{
-                  fontSize: 24,
-                  fontWeight: 'bold',
-                  color: 'white',
-                  fontFamily: 'Pokemon-Classic',
-                  marginBottom: 5,
-                }}>
-                {item.name.charAt(0).toUpperCase() + item.name.slice(1)}
-              </Text>
-              <Image
-                source={{uri: item.sprites.front_default}}
-                style={{width: 120, height: 120, marginBottom: 10}}
-              />
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontFamily: 'Pokemon-Classic',
-                }}>
-                Type:{' '}
-                {item.types.map(typeInfo => typeInfo.type.name).join(', ')}
-              </Text>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontFamily: 'Pokemon-Classic',
-                }}>
-                Abilities:{' '}
-                {item.abilities
-                  .map(abilityInfo => abilityInfo.ability.name)
-                  .join(', ')}
-              </Text>
-              <Text
-                style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontFamily: 'Pokemon-Classic',
-                }}>
-                Moves:{' '}
-                {item.moves
-                  .slice(0, 4)
-                  .map(moveInfo => moveInfo.move.name)
-                  .join(', ')}
-              </Text>
-            </View>
-          )}
+          data={tasks}
+          renderItem={renderItem}
+          keyExtractor={(item, index) => index.toString()}
         />
       </View>
     </ImageBackground>
   );
 };
 
-export default Dashboard;
+export default DashboardScreen;
